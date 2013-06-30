@@ -23,44 +23,47 @@ def get_audio_list(token)
 	JSON.parse response
 end
 
-def save_songs(audio_list)
-	queue_count = audio_list.count.to_s
-	puts queue_count + ' songs in queue.'
+def make_safe_str(string)
+	CGI.unescapeHTML(string).gsub(/\/|\\/, '\\')
+end
 
+def save_file(filename, file_uri)
 	music_dir = Dir.pwd + '/music/'
+	Dir.mkdir(music_dir, 0755) unless Dir.exist? music_dir
 
-	unless Dir.exist? music_dir
-		Dir.mkdir music_dir, 0755
-	end
+	if File.file?(music_dir + filename)
+		puts filename + ' already exists.'
+	else
+		puts 'downloading ' + filename + '...'
 
-	audio_list.each_index do |song|
-		print '[' + (song + 1).to_s + '/' + queue_count + '] '
-
-		song = audio_list[song]
-		filename = CGI.unescapeHTML((song['artist'] + ' - ' + song['title'] + '.mp3').gsub(/\/|\\/, '\\'))
-		file_uri = URI.parse song['url']
-
-		if File.file?(music_dir + filename)
-			puts filename + ' already exists.'
-		else
-			puts 'downloading ' + filename + '...'
-			File.open(music_dir + filename, 'wb') do |f|
-				Net::HTTP.start(file_uri.host) do |http|
-					response = http.get(file_uri)
-					f.write(response.body)
-				end
-			end
-		end
+	File.open(music_dir + filename, 'wb') do |f|
+		response = Net::HTTP.get(file_uri)
+		f.write(response)
 	end
 end
 
-if ARGV.empty? or ARGV[0] == '-h'
+def prepare_songs(audio_list)
+	queue_count = audio_list.count.to_s
+	puts queue_count + ' songs in queue.'
+
+	audio_list.each_index do |song|
+		print "[#{ song + 1 }/#{ queue_count }] "
+
+		song = audio_list[song]
+		filename = make_safe_str("#{ song['artist'] } - #{ song['title'] }.mp3")
+		file_uri = URI.parse(song['url'])
+
+		save_file(filename, file_uri)
+	end
+end
+
+if ARGV.empty? || ARGV[0] == '-h'
 	show_help
-elsif not ARGV[0].empty?
-	audio_list = get_audio_list(ARGV[0].to_s)
+elsif !ARGV[0].empty?
+	audio_list = get_audio_list(ARGV[0])
 
 	if audio_list['error'].nil?
-		save_songs(audio_list['response'])
+		prepare_songs(audio_list['response'])
 	else
 		puts audio_list['error']['error_msg']
 	end
