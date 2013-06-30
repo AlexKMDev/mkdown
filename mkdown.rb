@@ -36,9 +36,10 @@ def save_file(filename, file_uri)
 	else
 		puts 'downloading ' + filename + '...'
 
-	File.open(music_dir + filename, 'wb') do |f|
-		response = Net::HTTP.get(file_uri)
-		f.write(response)
+		File.open(music_dir + filename, 'wb') do |f|
+			response = Net::HTTP.get(file_uri)
+			f.write(response)
+		end
 	end
 end
 
