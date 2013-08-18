@@ -49,7 +49,7 @@ def prepare_songs(audio_list)
     filename = safe_str "#{ song['artist'] } - #{ song['title'] }.mp3"
     file_uri = URI.parse song['url']
 
-    save_file(filename, file_uri)
+    save_file filename, file_uri
   end
 end
 
@@ -57,13 +57,13 @@ if !ARGV.first || ARGV.first == '-h'
   show_help
 else
   print 'Music will be downloaded in new "music" directory in current directory. Ok? (y/n): '
-  answer = STDIN.gets.chomp()
+  answer = STDIN.gets.chomp
   exit if answer != 'y'
 
-  audio_list = get_audio_list(ARGV.first)
+  audio_list = get_audio_list ARGV.first
 
   if audio_list['error'].nil?
-    prepare_songs(audio_list['response'])
+    prepare_songs audio_list['response']
   else
     puts audio_list['error']['error_msg']
   end
