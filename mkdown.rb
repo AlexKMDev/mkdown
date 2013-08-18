@@ -6,7 +6,7 @@ require 'json'
 require 'cgi'
 
 def show_help
-  puts "Usage: ./mkdown.rb <access_token>"
+  puts 'Usage: ./mkdown.rb <access_token> or ruby mkdown.rb <access_token>'
 end
 
 def get_audio_list(token)
@@ -39,7 +39,7 @@ def save_file(filename, file_uri)
 end
 
 def prepare_songs(audio_list)
-  queue_count = audio_list.count.to_s
+  queue_count = audio_list.count
   puts "#{queue_count} songs in queue."
 
   audio_list.each_index do |song|
@@ -58,7 +58,7 @@ if !ARGV.first || ARGV.first == '-h'
 else
   print 'Music will be downloaded in new "music" directory in current directory. Ok? (y/n): '
   answer = STDIN.gets.chomp
-  exit if answer != 'y'
+  exit if answer.downcase != 'y'
 
   audio_list = get_audio_list ARGV.first
 
