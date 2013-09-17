@@ -95,6 +95,7 @@ class VKWorker
   def save(filename, file_uri)
     path = get_fullpath(filename)
 
+    puts filename unless @verbose
     if song_exist?(path)
       puts "#{filename} already exists." if @verbose
     else
