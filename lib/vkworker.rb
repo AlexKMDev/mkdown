@@ -1,13 +1,15 @@
 class VKWorker
-  attr_accessor :token, :verbose, :yes, :audio_list
+  API_URI = 'https://api.vk.com/method/'
+  METHODS = { search: 'audio.search', get: 'audio.get' }
+
+  attr_reader :token, :audio_list
+  attr_accessor :verbose
 
   def initialize(token)
-    @token = token
-    File.open('token.lock', 'w').write token
-  end
-
-  def verbose
-    @verbose = true
+    @token = "access_token=#{token}"
+    @verbose = false
+    @audio_list = {}
+    save_token(token)
   end
 
   def download_my_songs
@@ -18,10 +20,10 @@ class VKWorker
   def search_songs(keyword)
     puts 'processing search...' if @verbose
 
-    uri = URI("https://api.vk.com/method/audio.search?access_token=#{@token}&q=#{keyword}&auto_complete=1")
-    response = JSON.parse Net::HTTP.get uri
+    uri = URI(API_URI + METHODS[:search] + "?#{@token}&q=#{keyword}")
+    response = JSON.parse(api_request(uri))
 
-    fail response['error']['error_msg'] if response['error']
+    error?(response)
     @audio_list = response['response']
   end
 
@@ -30,11 +32,15 @@ class VKWorker
   def get_audio_list
     puts 'downloading audio list...' if @verbose
 
-    uri = URI('https://api.vk.com/method/audio.get?access_token=' + @token)
-    response = JSON.parse Net::HTTP.get uri
+    uri = URI(API_URI + METHODS[:get] + '?' + @token)
+    response = JSON.parse(api_request(uri))
 
-    fail response['error']['error_msg'] if response['error']
+    error?(response)
     @audio_list = response['response']
+  end
+
+  def save_token(token)
+    File.open('.token', 'w').write(token)
   end
 
   def prepare_songs
@@ -48,25 +54,55 @@ class VKWorker
       filename = safe_str "#{ song['artist'] } - #{ song['title'] }.mp3"
       file_uri = URI.parse song['url']
 
-      save_file filename, file_uri
-
+      save(filename, file_uri)
     end
   end
 
-  def save_file(filename, file_uri)
+  def dir_path
     music_dir = Dir.pwd + '/music/'
-    Dir.mkdir music_dir, 0755 unless Dir.exist? music_dir
+    Dir.mkdir(music_dir, 0755) unless Dir.exist?(music_dir)
+    music_dir
+  end
 
-    if File.file? music_dir + filename
-      puts "#{filename} already exists."
+  def get_fullpath(filename)
+    dir_path + filename
+  end
+
+  def song_exist?(path)
+    File.file?(path)
+  end
+
+  def error?(response)
+    if response['error']
+      puts response['error']['error_msg']
+      exit
+    end
+  end
+
+  def api_request(uri)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+
+    request = Net::HTTP::Get.new(uri.request_uri)
+
+    http.request(request).body
+  end
+
+  def download(uri)
+    Net::HTTP.get(uri)
+  end
+
+  def save(filename, file_uri)
+    path = get_fullpath(filename)
+
+    if song_exist?(path)
+      puts "#{filename} already exists." if @verbose
     else
       puts "downloading #{filename}..." if @verbose
 
-      File.open music_dir + filename, 'wb' do |f|
-        response = Net::HTTP.get file_uri
-        f.write response
+      File.open(path, 'wb') do |f|
+        f.write(download(file_uri))
       end
     end
   end
-
 end
