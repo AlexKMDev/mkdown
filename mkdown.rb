@@ -3,6 +3,7 @@
 $LOAD_PATH.unshift(File.dirname(File.realpath(__FILE__)) + '/lib')
 
 require 'net/http'
+require 'net/https'
 require 'json'
 require 'cgi'
 require 'helper'

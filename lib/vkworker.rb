@@ -85,6 +85,7 @@ class VKWorker
 
     request = Net::HTTP::Get.new(uri.request_uri)
 
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     http.request(request).body
   end
 
